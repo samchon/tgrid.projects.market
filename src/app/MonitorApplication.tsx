@@ -10,6 +10,7 @@ import { ConsumerNode } from "../core/monitor/ConsumerNode";
 import { SupplierNode } from "../core/monitor/SupplierNode";
 
 import { ConsumerMovie } from "./movies/ConsumerMovie";
+import { Global } from "../Global";
 
 export class MonitorApplication extends React.Component<MonitorApplication.IProps>
 {
@@ -61,7 +62,7 @@ export namespace MonitorApplication
 
     export async function main(): Promise<void>
     {
-        let url: string = "ws://" + window.location.hostname + ":10101/monitor";
+        let url: string = `ws://${window.location.hostname}:${Global.PORT}/monitor`;
         let monitor: Monitor = await Monitor.participate(url);
 
         _Render(monitor.getConsumers(), monitor.getSuppliers());

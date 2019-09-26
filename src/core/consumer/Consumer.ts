@@ -66,11 +66,11 @@ export class Consumer
                     this.servants_.splice(i, 1);
                     break;
                 }
-            this.connector_.getProvider().servants.erase(ret.uid);
+            this.connector_.getProvider()!.servants.erase(ret.uid);
         });
 
         this.servants_.push(ret);
-        this.connector_.getProvider().servants.set(ret.uid, new Servant.Provider(ret));
+        this.connector_.getProvider()!.servants.set(ret.uid, new Servant.Provider(ret));
         
         return ret;
     }

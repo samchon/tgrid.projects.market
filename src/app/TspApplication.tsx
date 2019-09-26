@@ -2,6 +2,9 @@ import "./polyfill";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { randint } from "tstl/algorithm";
+import { sleep_for } from "tstl/thread";
+
+import { Global } from "../Global";
 
 import { IPoint } from "../utils/IPoint";
 import { Consumer } from "../core/consumer/Consumer";
@@ -10,7 +13,6 @@ import { TspSolver } from "../utils/TspSolver";
 
 import { TspInputMovie } from "./movies/TspInputMovie";
 import { TspResultMovie } from "./movies/TspResultMovie";
-import { sleep_for } from "tstl/thread";
 import { ReactUtil } from "../utils/ReactUtil";
 import { StringUtil } from "../utils/StringUtil";
 
@@ -56,7 +58,7 @@ export class TspApplication extends React.Component
             "assets/js/tsp-servant.min.js", 
             { method: "GET" })
         ).text();
-        let url: string = "ws://" + window.location.hostname + ":10101/consumer";
+        let url: string = `ws://${window.location.hostname}:${Global.PORT}/consumer`;
 
         // FETCH SERVANTS
         let consumer: Consumer = await Consumer.participate(url);

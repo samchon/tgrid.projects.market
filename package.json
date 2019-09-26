@@ -4,6 +4,9 @@
   "description": "Grid Market - Tutorial Project for TGrid",
   "main": "bin/index.js",
   "scripts": {
+    "build": "tsc && webpack --mode production",
+    "dev": "webpack -w --mode development",
+    "market": "node bin/mount/market",
     "test": "node bin/test"
   },
   "repository": {
@@ -17,7 +20,7 @@
   },
   "homepage": "https://github.com/samchon/tgrid.projects.market#readme",
   "dependencies": {
-    "tgrid": "^0.2.0-dev.20190924"
+    "tgrid": "^0.2.0-dev.20190926"
   },
   "devDependencies": {
     "@types/node": "^12.7.5",

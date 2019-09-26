@@ -1,8 +1,9 @@
 import { Supplier } from "../core/supplier/Supplier";
+import { Global } from "../Global";
 
 async function main(): Promise<void>
 {
-    await Supplier.participate("http://127.0.0.1:10101/supplier");
+    await Supplier.participate(`http://127.0.0.1:${Global.PORT}/supplier`);
 }
 main();
 

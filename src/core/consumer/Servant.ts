@@ -1,11 +1,11 @@
 import { ISupplier } from "../supplier/ISupplier";
-import { Communicator, Driver } from "tgrid/components";
+import { Driver } from "tgrid/components/Driver";
 import { ConditionVariable } from "tstl/thread";
 
 import { Supplier } from "../supplier/Supplier";
 import { IPerformance } from "../supplier/IPerformance";
 
-export class Servant implements Readonly<ISupplier>, Communicator<object|null|undefined>
+export class Servant implements Readonly<ISupplier>
 {
     /**
      * @hidden

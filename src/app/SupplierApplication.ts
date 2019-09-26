@@ -1,5 +1,6 @@
 import "./polyfill";
 
+import { Global } from "../Global";
 import { Supplier } from "../core/supplier/Supplier";
 import { StringUtil } from "../utils/StringUtil";
 
@@ -17,7 +18,7 @@ function trace(...args: any[]): void
 
 async function main(): Promise<void>
 {
-    let url: string = "ws://" + window.location.hostname + ":10101/supplier";
+    let url: string = `ws://${window.location.hostname}:${Global.PORT}/supplier`;
     let supp: Supplier =  await Supplier.participate(url);
     let time: number;
 

@@ -106,7 +106,7 @@ export class ConsumerChannel
 
         // PROVIDER FOR CONSUMER (SERVANT) := CONTROLLER OF SUPPLIER
         let provider = supplier.getDriver();
-        this.acceptor_.getProvider().assginees.set(supplier.uid, provider);
+        this.acceptor_.getProvider()!.assginees.set(supplier.uid, provider);
 
         // RETURN WITH ASSIGNMENT
         await provider.assign(this.uid);
@@ -122,7 +122,7 @@ export class ConsumerChannel
     public async unlink(supplier: SupplierChannel): Promise<void>
     {
         this.assignees_.erase(supplier.uid);
-        this.acceptor_.getProvider().assginees.erase(supplier.uid);
+        this.acceptor_.getProvider()!.assginees.erase(supplier.uid);
 
         await supplier.unlink(this);
         for (let entry of this.market_.getMonitors())

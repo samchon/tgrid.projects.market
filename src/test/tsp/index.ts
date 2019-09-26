@@ -12,6 +12,7 @@ import { ISupplier } from "../../core/supplier/ISupplier";
 import { ILocation } from "./internal/ILocation";
 import { IParallel } from "./internal/IParallel";
 import { Factorial } from "number-of-cases";
+import { Global } from "../../Global";
 
 import * as fs from "fs";
 import { randint } from "tstl/algorithm/random";
@@ -106,7 +107,7 @@ export async function _Solve_in_grid(branches: ILocation[]): Promise<void>
 {
     console.log("TSP Solver in Grid Computing.");
 
-    let consumer: Consumer = await Consumer.participate("http://127.0.0.1:10101/consumer");
+    let consumer: Consumer = await Consumer.participate(`http://127.0.0.1:${Global.PORT}/consumer`);
     let suppliers: ISupplier[] = await consumer.getSuppliers();
 
     let servants: Servant[] = [];
