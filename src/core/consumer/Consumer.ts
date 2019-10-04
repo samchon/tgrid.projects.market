@@ -1,5 +1,4 @@
 import { WebConnector } from "tgrid/protocols/web/WebConnector";
-import { SharedWorkerConnector } from "tgrid/protocols/workers";
 import { Driver } from "tgrid/components/Driver";
 import { ArrayDict } from "../../utils/ArrayDict";
 
@@ -10,7 +9,7 @@ import { ConsumerChannel } from "../market/ConsumerChannel";
 export class Consumer
 {
     public readonly uid: number;
-    private connector_: Connector;
+    private connector_: WebConnector<Consumer.Provider>;
 
     private market_: Driver<ConsumerChannel.IController>;
     private servants_: Servant[];
@@ -18,7 +17,7 @@ export class Consumer
     /* ----------------------------------------------------------------
         CONSTRUCTORS
     ---------------------------------------------------------------- */
-    private constructor(uid: number, connector: Connector)
+    private constructor(uid: number, connector: WebConnector<Consumer.Provider>)
     {
         this.uid = uid;
         this.connector_ = connector;
@@ -94,8 +93,3 @@ export namespace Consumer
         public servants: ArrayDict<Servant.Provider> = new ArrayDict();
     }
 }
-
-/**
- * @hidden
- */
-type Connector = WebConnector<Consumer.Provider> | SharedWorkerConnector<Consumer.Provider>;

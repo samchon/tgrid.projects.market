@@ -1,5 +1,4 @@
 import { WebAcceptor } from "tgrid/protocols/web/WebAcceptor";
-import { SharedWorkerAcceptor } from "tgrid/protocols/workers/SharedWorkerAcceptor";
 import { HashMap } from "tstl/container/HashMap";
 import { ArrayDict } from "../../utils/ArrayDict";
 
@@ -21,7 +20,7 @@ export class ConsumerChannel
     /**
      * @hidden
      */
-    private acceptor_: Acceptor;
+    private acceptor_: WebAcceptor<ConsumerChannel.Provider>;
 
     /**
      * @hidden
@@ -34,7 +33,7 @@ export class ConsumerChannel
     /**
      * @hidden
      */
-    private constructor(uid: number, market: Market, acceptor: Acceptor)
+    private constructor(uid: number, market: Market, acceptor: WebAcceptor<ConsumerChannel.Provider>)
     {
         this.uid = uid;
         this.market_ = market;
@@ -46,7 +45,7 @@ export class ConsumerChannel
     /**
      * @internal
      */
-    public static async create(uid: number, market: Market, acceptor: Acceptor): Promise<ConsumerChannel>
+    public static async create(uid: number, market: Market, acceptor: WebAcceptor<ConsumerChannel.Provider>): Promise<ConsumerChannel>
     {
         let ret: ConsumerChannel = new ConsumerChannel(uid, market, acceptor);
         await ret.acceptor_.accept(new ConsumerChannel.Provider(ret));
@@ -62,7 +61,7 @@ export class ConsumerChannel
     {
         try { await this.acceptor_.join(); } catch {}
         for (let it of this.assignees_)
-            await it.second.unlink(this);
+            await it.second.release(this);
     }
 
     /* ----------------------------------------------------------------
@@ -95,10 +94,10 @@ export class ConsumerChannel
     /**
      * @internal
      */
-    public async link(supplier: SupplierChannel): Promise<boolean>
+    public async transact(supplier: SupplierChannel): Promise<boolean>
     {
         if (this.assignees_.has(supplier.uid) || // DUPLICATED
-            await supplier.link(this) === false) // MONOPOLIZED
+            await supplier.transact(this) === false) // MONOPOLIZED
             return false;
 
         // CONSTR5UCT SERVANT
@@ -111,7 +110,7 @@ export class ConsumerChannel
         // RETURN WITH ASSIGNMENT
         await provider.assign(this.uid);
         for (let entry of this.market_.getMonitors())
-            entry.second.link(this.uid, supplier.uid).catch(() => {});
+            entry.second.transact(this.uid, supplier.uid).catch(() => {});
 
         return true;
     }
@@ -119,12 +118,12 @@ export class ConsumerChannel
     /**
      * @internal
      */
-    public async unlink(supplier: SupplierChannel): Promise<void>
+    public async release(supplier: SupplierChannel): Promise<void>
     {
         this.assignees_.erase(supplier.uid);
         this.acceptor_.getProvider()!.assginees.erase(supplier.uid);
 
-        await supplier.unlink(this);
+        await supplier.release(this);
         for (let entry of this.market_.getMonitors())
             entry.second.release(supplier.uid).catch(() => {});
     }
@@ -178,12 +177,7 @@ export namespace ConsumerChannel
             if (it.equals(map.end()) === true)
                 return false;
 
-            return await this.consumer_.link(it.second);
+            return await this.consumer_.transact(it.second);
         }
     }
 }
-
-/**
- * @hidden
- */
-type Acceptor = WebAcceptor<ConsumerChannel.Provider> | SharedWorkerAcceptor<ConsumerChannel.Provider>;

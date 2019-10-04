@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 
-import { WebConnector } from "tgrid/protocols/web";
-import { WorkerConnector, SharedWorkerConnector } from "tgrid/protocols/workers";
+import { WebConnector } from "tgrid/protocols/web/WebConnector";
+import { WorkerConnector } from "tgrid/protocols/workers/WorkerConnector";
 import { Driver } from "tgrid/components/Driver";
 
 import { IPointer } from "tstl/functional/IPointer";
@@ -14,7 +14,7 @@ export class Supplier extends EventEmitter
     /**
      * @hidden
      */
-    private connector_: Connector;
+    private connector_: WebConnector<Supplier.Provider>;
 
     /* ----------------------------------------------------------------
         CONSTRUCTOR
@@ -22,7 +22,7 @@ export class Supplier extends EventEmitter
     /**
      * @hidden
      */
-    private constructor(uid: number, connector: Connector)
+    private constructor(uid: number, connector: WebConnector<Supplier.Provider>)
     {
         super();
 
@@ -140,5 +140,3 @@ export namespace Supplier
         }
     }
 }
-
-type Connector = WebConnector<Supplier.Provider> | SharedWorkerConnector<Supplier.Provider>;

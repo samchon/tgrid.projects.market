@@ -1,7 +1,7 @@
 import { HashMap } from "tstl/container/HashMap";
-import { WebServer, WebAcceptor } from "tgrid/protocols/web";
-import { SharedWorkerServer, SharedWorkerAcceptor } from "tgrid/protocols/workers";
-import { Driver } from "tgrid/components";
+import { WebServer } from "tgrid/protocols/web/WebServer";
+import { WebAcceptor } from "tgrid/protocols/web/WebAcceptor";
+import { Driver } from "tgrid/components/Driver";
 
 import { IConsumerNode } from "../monitor/IConsumerNode";
 import { ISupplierNode } from "../monitor/ISupplierNode";
@@ -12,7 +12,7 @@ import { SupplierChannel } from "./SupplierChannel";
 
 export class Market
 {
-    private server_: Server<Provider>;
+    private server_: WebServer<Provider>;
 
     private consumers_: HashMap<number, ConsumerChannel>;
     private suppliers_: HashMap<number, SupplierChannel>;
@@ -23,51 +23,100 @@ export class Market
     /* ----------------------------------------------------------------
         CONSTRUCTORS
     ---------------------------------------------------------------- */
-    private constructor(server: Server<Provider>)
+    /**
+     * Default Constructor.
+     */
+    public constructor()
     {
-        this.server_ = server;
+        this.server_ = new WebServer<Provider>();
 
         this.consumers_ = new HashMap();
         this.suppliers_ = new HashMap();
         this.monitors_ = new HashMap();
     }
 
-    public static async open(port: number): Promise<Market>
+    public open(port: number): Promise<void>
     {
-        let server: WebServer<Provider> = new WebServer();
-        let market: Market = new Market(server);
-
-        await Market._Open(market, 
-            server.open.bind(server, port),
-            (acceptor: WebAcceptor<Provider>): Actor => 
+        return this.server_.open(port, async (acceptor: WebAcceptor<Provider>) =>
+        {
+            let uid: number = ++Market.sequence_;
+            if (acceptor.path === "/monitor")
             {
-                if (acceptor.path.indexOf("/consumer") === 0)
-                    return Actor.CONSUMER;
-                else if (acceptor.path.indexOf("/supplier") === 0)
-                    return Actor.SUPPLIER;
-                else if (acceptor.path.indexOf("/monitor") === 0)
-                    return Actor.MONITOR;
-                else
-                    return Actor.NONE;
-            },
-            (acceptor: WebAcceptor<Provider>) => acceptor.reject(404, "Invalid URL")
-        );
+                await this._Handle_monitor(uid, acceptor);
+                return;
+            }
 
-        // RETURNS
-        return market;
+            //----
+            // PRELIMINARIES
+            //----
+            // DETERMINE ACTOR
+            let instance: Instance;
+            let dictionary: HashMap<number, Instance>;
+
+            // MONITOR HANDLER
+            let monitor_inserter: (drvier: Driver<Monitor.IController>) => Promise<void>;
+            let monitor_eraser: (drvier: Driver<Monitor.IController>) => Promise<void>;
+
+            // PARSE PATH
+            if (acceptor.path === "/consumer")
+            {
+                instance = await ConsumerChannel.create(uid, this, acceptor as WebAcceptor<ConsumerChannel.Provider>);
+                dictionary = this.consumers_;
+
+                let raw: IConsumerNode = { uid: uid, servants: [] };
+                monitor_inserter = driver => driver.insertConsumer(raw);
+                monitor_eraser = driver => driver.eraseConsumer(uid);
+            }
+            else if (acceptor.path === "/supplier")
+            {
+                instance = await SupplierChannel.create(uid, acceptor as WebAcceptor<SupplierChannel.Provider>);
+                dictionary = this.suppliers_;
+
+                let raw: ISupplierNode = { uid: uid };
+                monitor_inserter = driver => driver.insertSupplier(raw);
+                monitor_eraser = driver => driver.eraseSupplier(uid);
+            }
+            else
+            {
+                acceptor.reject(404, "Invalid URL");
+                return;
+            }
+
+            //----
+            // PROCEDURES
+            //----
+            // ENROLL TO DICTIONARY
+            dictionary.emplace(uid, instance);
+            console.log("A participant has come", this.consumers_.size(), this.suppliers_.size());
+            
+            // INFORM TO MONITORS
+            for (let entry of this.monitors_)
+                monitor_inserter(entry.second).catch(() => {});
+
+            //----
+            // DISCONNECTION
+            //----
+            // JOIN CONNECTION
+            try 
+            { 
+                await acceptor.join(); 
+            } 
+            catch {}
+
+            // ERASE ON DICTIONARY
+            dictionary.erase(uid);
+            console.log("A participant has left", this.consumers_.size(), this.suppliers_.size());
+            
+            // INFORM TO MONITORS
+            for (let entry of this.monitors_)
+                monitor_eraser(entry.second).catch(() => {});
+        });
     }
-
-    // public static async simulate(): Promise<Market>
-    // {
-    //     //----
-    //     // NODE: IN CHILD-PROCESS, OPEN THE WEB-SERVER
-    //     // WEB:  IN SHARED-WORKER, OPEN THE SHARED-WORKER-SERVER
-    //     //----
-    // }
 
     public async close(): Promise<void>
     {
         await this.server_.close();
+
         this.consumers_.clear();
         this.suppliers_.clear();
     }
@@ -86,93 +135,12 @@ export class Market
     }
 
     /* ----------------------------------------------------------------
-        PROCEDURES
+        MONITOR HANDLER
     ---------------------------------------------------------------- */
     /**
      * @hidden
      */
-    private static async _Open<AcceptorT extends Acceptor<Provider>>
-        (
-            market: Market, 
-            opener: (cb: (acceptor: AcceptorT) => Promise<void>) => Promise<void>,
-            predicator: (acceptor: AcceptorT) => Actor,
-            rejector: (acceptor: AcceptorT) => Promise<void>
-        ): Promise<void>
-    {
-        await opener(async acceptor =>
-        {
-            //----
-            // PRELIMINARIES
-            //----
-            // DETERMINE ACTOR
-            let uid: number = ++Market.sequence_;
-            let actor: Actor = predicator(acceptor);
-
-            if (actor === Actor.NONE)
-            {
-                await rejector(acceptor);
-                return;
-            }
-            else if (actor === Actor.MONITOR)
-            {
-                market._Handle_monitor(uid, acceptor);
-                return;
-            }
-
-            // PREPARE ASSETS
-            let instance: Instance;
-            let dictionary: HashMap<number, Instance>;
-            let monitor_inserter: (drvier: Driver<Monitor.IController>)=>Promise<void>;
-            let monitor_eraser: (drvier: Driver<Monitor.IController>)=>Promise<void>;
-            
-            //----
-            // PROCEDURES
-            //----
-            // CONSTRUCT INSTANCE
-            if (actor === Actor.CONSUMER)
-            {
-                instance = await ConsumerChannel.create(uid, market, acceptor as Acceptor<ConsumerChannel.Provider>);
-                dictionary = market.consumers_;
-
-                let raw: IConsumerNode = { uid: uid, servants: [] };
-                monitor_inserter = driver => driver.insertConsumer(raw);
-                monitor_eraser = driver => driver.eraseConsumer(uid);
-            }
-            else
-            {
-                instance = await SupplierChannel.create(uid, acceptor as Acceptor<SupplierChannel.Provider>);
-                dictionary = market.suppliers_;
-
-                let raw: ISupplierNode = { uid: uid };
-                monitor_inserter = driver => driver.insertSupplier(raw);
-                monitor_eraser = driver => driver.eraseSupplier(uid);
-            }
-            
-            // ENROLL TO DICTIONARY
-            dictionary.emplace(uid, instance);
-            console.log("A participant has come", market.consumers_.size(), market.suppliers_.size());
-            
-            // INFORM TO MONITORS
-            for (let entry of market.monitors_)
-                monitor_inserter(entry.second).catch(() => {});
-
-            //----
-            // DISCONNECTION
-            //----
-            // JOIN CONNECTION
-            try { await acceptor.join(); } catch {}
-
-            // ERASE ON DICTIONARY
-            dictionary.erase(uid);
-            console.log("A participant has left", market.consumers_.size(), market.suppliers_.size());
-            
-            // INFORM TO MONITORS
-            for (let entry of market.monitors_)
-                monitor_eraser(entry.second).catch(() => {});
-        });
-    }
-
-    private async _Handle_monitor(uid: number, acceptor: Acceptor<{}>): Promise<void>
+    private async _Handle_monitor(uid: number, acceptor: WebAcceptor<{}>): Promise<void>
     {
         console.log("A monitor has come", this.monitors_.size());
 
@@ -217,15 +185,5 @@ export class Market
     }
 }
 
-type Server<Provider extends object> = WebServer<Provider> | SharedWorkerServer<Provider>;
-type Acceptor<Provider extends object> = WebAcceptor<Provider> | SharedWorkerAcceptor<Provider>;
 type Provider = ConsumerChannel.Provider | SupplierChannel.Provider;
-
 type Instance = ConsumerChannel | SupplierChannel;
-const enum Actor
-{
-    NONE,
-    CONSUMER,
-    SUPPLIER,
-    MONITOR
-}

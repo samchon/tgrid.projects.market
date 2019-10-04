@@ -3,7 +3,8 @@ import { Global } from "../Global";
 
 async function main(): Promise<void>
 {
-    await Market.open(Global.PORT);
+    let market: Market = new Market();
+    await market.open(Global.PORT);
 }
 main();
 

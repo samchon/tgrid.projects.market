@@ -1,5 +1,4 @@
 import { WebConnector } from "tgrid/protocols/web";
-import { SharedWorkerConnector } from "tgrid/protocols/workers";
 
 import { EventEmitter } from "events";
 import { HashMap } from "tstl/container/HashMap";
@@ -16,7 +15,7 @@ export class Monitor
     /**
      * @hidden
      */
-    private connector_: Connector;
+    private connector_: WebConnector;
 
     /**
      * @hidden
@@ -39,7 +38,7 @@ export class Monitor
     /**
      * @hidden
      */
-    private constructor(connector: Connector)
+    private constructor(connector: WebConnector)
     {
         this.connector_ = connector;
 
@@ -117,7 +116,7 @@ export namespace Monitor
         eraseConsumer(uid: number): void;
         eraseSupplier(uid: number): void;
 
-        link(consumer: number, supplier: number): void;
+        transact(consumer: number, supplier: number): void;
         release(uid: number): void;
     }
 
@@ -203,7 +202,7 @@ export namespace Monitor
         /* ----------------------------------------------------------------
             RELATIONSHIPS
         ---------------------------------------------------------------- */
-        public link(customerUID: number, supplierUID: number): void
+        public transact(customerUID: number, supplierUID: number): void
         {
             let base: Monitor = this.ptr_.value;
             let consumer: ConsumerNode = base.getConsumers().get(customerUID);
@@ -228,8 +227,3 @@ export namespace Monitor
         }
     }
 }
-
-/**
- * @hidden
- */
-type Connector = WebConnector | SharedWorkerConnector;

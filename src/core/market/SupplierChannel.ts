@@ -1,13 +1,11 @@
-import { WebAcceptor } from "tgrid/protocols/web";
-import { SharedWorkerAcceptor } from "tgrid/protocols/workers";
+import { WebAcceptor } from "tgrid/protocols/web/WebAcceptor";
+import { Driver } from "tgrid/components/Driver";
 import { Mutex } from "tstl/thread/Mutex";
+import { UniqueLock } from "tstl/thread/UniqueLock";
 
 import { ISupplier } from "../supplier/ISupplier";
-import { IPerformance } from "../supplier/IPerformance";
-import { ConsumerChannel } from "./ConsumerChannel";
-import { UniqueLock } from "tstl/thread/UniqueLock";
-import { Driver } from "tgrid/components/Driver";
 import { Supplier } from "../supplier/Supplier";
+import { ConsumerChannel } from "./ConsumerChannel";
 
 export class SupplierChannel implements Readonly<ISupplier>
 {
@@ -19,12 +17,12 @@ export class SupplierChannel implements Readonly<ISupplier>
     /**
      * @inheritDoc
      */
-    public readonly performance: IPerformance;
+    public readonly performance: ISupplier.IPerformance;
 
     /**
      * @hidden
      */
-    private acceptor_: Acceptor;
+    private acceptor_: WebAcceptor<SupplierChannel.Provider>;
 
     /**
      * @hidden
@@ -34,7 +32,7 @@ export class SupplierChannel implements Readonly<ISupplier>
     /**
      * @hidden
      */
-    private mtx_: Mutex;
+    private mutex_: Mutex;
 
     /* ----------------------------------------------------------------
         CONSTRUCTORS
@@ -42,7 +40,7 @@ export class SupplierChannel implements Readonly<ISupplier>
     /**
      * @hidden
      */
-    private constructor(uid: number, acceptor: Acceptor)
+    private constructor(uid: number, acceptor: WebAcceptor<SupplierChannel.Provider>)
     {
         this.uid = uid;
         this.acceptor_ = acceptor;
@@ -54,13 +52,13 @@ export class SupplierChannel implements Readonly<ISupplier>
             credit: 0.0
         };
         this.consumer_ = null;
-        this.mtx_ = new Mutex();
+        this.mutex_ = new Mutex();
     }
 
     /**
      * @internal
      */
-    public static async create(uid: number, acceptor: Acceptor): Promise<SupplierChannel>
+    public static async create(uid: number, acceptor: WebAcceptor<SupplierChannel.Provider>): Promise<SupplierChannel>
     {
         let ret: SupplierChannel = new SupplierChannel(uid, acceptor);
         await ret.acceptor_.accept(new SupplierChannel.Provider(ret));
@@ -75,10 +73,10 @@ export class SupplierChannel implements Readonly<ISupplier>
     private async _Handle_disconnection(): Promise<void>
     {
         try { await this.acceptor_.join(); } catch {}
-        await UniqueLock.lock(this.mtx_, async () =>
+        await UniqueLock.lock(this.mutex_, async () =>
         {
             if (this.consumer_ !== null)
-                this.consumer_.unlink(this);
+                this.consumer_.release(this);
         });
     }
 
@@ -120,10 +118,10 @@ export class SupplierChannel implements Readonly<ISupplier>
     /**
      * @internal
      */
-    public async link(consumer: ConsumerChannel): Promise<boolean>
+    public async transact(consumer: ConsumerChannel): Promise<boolean>
     {
         let ret: boolean;
-        await UniqueLock.lock(this.mtx_, () =>
+        await UniqueLock.lock(this.mutex_, () =>
         {
             if ((ret = this.free) === true)
             {
@@ -137,9 +135,9 @@ export class SupplierChannel implements Readonly<ISupplier>
     /**
      * @internal
      */
-    public async unlink(consumer: ConsumerChannel): Promise<void>
+    public async release(consumer: ConsumerChannel): Promise<void>
     {
-        await UniqueLock.lock(this.mtx_, async () =>
+        await UniqueLock.lock(this.mutex_, async () =>
         {
             if (this.consumer_ === consumer)
             {
@@ -180,8 +178,3 @@ export namespace SupplierChannel
         }
     }
 }
-
-/**
- * @hidden
- */
-type Acceptor = WebAcceptor<SupplierChannel.Provider> | SharedWorkerAcceptor<SupplierChannel.Provider>;

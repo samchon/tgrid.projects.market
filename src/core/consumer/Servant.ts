@@ -1,9 +1,8 @@
-import { ISupplier } from "../supplier/ISupplier";
 import { Driver } from "tgrid/components/Driver";
-import { ConditionVariable } from "tstl/thread";
+import { ConditionVariable } from "tstl/thread/ConditionVariable";
 
+import { ISupplier } from "../supplier/ISupplier";
 import { Supplier } from "../supplier/Supplier";
-import { IPerformance } from "../supplier/IPerformance";
 
 export class Servant implements Readonly<ISupplier>
 {
@@ -95,7 +94,7 @@ export class Servant implements Readonly<ISupplier>
     {
         return this.base_.uid;
     }
-    public get performance(): IPerformance
+    public get performance(): ISupplier.IPerformance
     {
         return this.base_.performance;
     }
