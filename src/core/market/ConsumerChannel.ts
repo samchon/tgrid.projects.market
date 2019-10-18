@@ -1,6 +1,7 @@
 import { WebAcceptor } from "tgrid/protocols/web/WebAcceptor";
 import { HashMap } from "tstl/container/HashMap";
 import { ArrayDict } from "../../utils/ArrayDict";
+import { DateUtil } from "../../utils/DateUtil";
 
 import { IConsumerNode } from "../monitor/IConsumerNode";
 import { ISupplier } from "../supplier/ISupplier";
@@ -96,7 +97,7 @@ export class ConsumerChannel
     {
         return {
             uid: this.uid,
-            created_at: this.created_at.toString(),
+            created_at: DateUtil.to_string(this.created_at, true),
             servants: [...this.servants_].map(it => it.first)
         };
     }

@@ -2,6 +2,7 @@ import { WebAcceptor } from "tgrid/protocols/web/WebAcceptor";
 import { Driver } from "tgrid/components/Driver";
 import { Mutex } from "tstl/thread/Mutex";
 import { UniqueLock } from "tstl/thread/UniqueLock";
+import { DateUtil } from "../../utils/DateUtil";
 
 import { ISupplier } from "../supplier/ISupplier";
 import { ISupplierNode } from "../monitor/ISupplierNode";
@@ -121,7 +122,7 @@ export class SupplierChannel implements Readonly<ISupplier>
     {
         return {
             uid: this.uid,
-            created_at: this.created_at.toString()
+            created_at: DateUtil.to_string(this.created_at, true)
         };
     }
 
