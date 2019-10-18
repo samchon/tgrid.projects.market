@@ -68,7 +68,7 @@ export class Market
                 instance = await SupplierChannel.create(uid, acceptor as WebAcceptor<SupplierChannel.Provider>);
                 dictionary = this.suppliers_;
 
-                monitor_inserter = driver => driver.insertSupplier(instance.toNode());
+                monitor_inserter = driver => driver.insertSupplier((instance as SupplierChannel).toNode());
                 monitor_eraser = driver => driver.eraseSupplier(uid);
             }
             else

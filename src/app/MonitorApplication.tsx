@@ -165,7 +165,8 @@ window.onload = async function ()
             {
                 let supplier: SupplierNode = new SupplierNode({
                     uid: --sequence,
-                    created_at: new Date().toString()
+                    created_at: new Date().toString(),
+                    assigned_at: null
                 });
                 supplier.assign(consumer);
 

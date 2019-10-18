@@ -22,7 +22,9 @@ export class SupplierNode
         this.created_at = new Date(raw.created_at);
 
         this.assignee_ = null;
-        this.assigned_at_ = null;
+        this.assigned_at_ = raw.assigned_at
+            ? new Date(raw.assigned_at)
+            : null;
     }
 
     public get assignee(): ConsumerNode | null

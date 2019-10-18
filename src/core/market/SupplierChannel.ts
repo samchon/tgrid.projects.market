@@ -12,32 +12,14 @@ import { ConsumerChannel } from "./ConsumerChannel";
 
 export class SupplierChannel implements Readonly<ISupplier>
 {
-    /**
-     * @inheritDoc
-     */
     public readonly uid: number;
-
     public readonly created_at: Date;
-
-    /**
-     * @inheritDoc
-     */
     public readonly performance: ISupplier.IPerformance;
 
-    /**
-     * @hidden
-     */
     private acceptor_: WebAcceptor<SupplierChannel.Provider>;
-
-    /**
-     * @hidden
-     */
-    private consumer_: ConsumerChannel | null;
-
-    /**
-     * @hidden
-     */
     private mutex_: Mutex;
+    private consumer_: ConsumerChannel | null;
+    private assigned_at_: Date | null;
 
     /* ----------------------------------------------------------------
         CONSTRUCTORS
@@ -57,8 +39,10 @@ export class SupplierChannel implements Readonly<ISupplier>
             risk: 0.0,
             credit: 0.0
         };
-        this.consumer_ = null;
+
         this.mutex_ = new Mutex();
+        this.consumer_ = null;
+        this.assigned_at_ = null;
     }
 
     /**
@@ -122,7 +106,10 @@ export class SupplierChannel implements Readonly<ISupplier>
     {
         return {
             uid: this.uid,
-            created_at: DateUtil.to_string(this.created_at, true)
+            created_at: DateUtil.to_string(this.created_at, true),
+            assigned_at: this.assigned_at_
+                ? DateUtil.to_string(this.assigned_at_, true)
+                : null
         };
     }
 
@@ -140,6 +127,7 @@ export class SupplierChannel implements Readonly<ISupplier>
             if ((ret = this.free) === true)
             {
                 this.consumer_ = consumer;
+                this.assigned_at_ = new Date();
                 this.acceptor_.getProvider()!.provider = consumer.getDriver().servants[this.uid];
             }
         });
@@ -157,6 +145,7 @@ export class SupplierChannel implements Readonly<ISupplier>
             {
                 // ERASE CONSUMER
                 this.consumer_ = null;
+                this.assigned_at_ = null;
                 this.acceptor_.getProvider()!.provider = null;
 
                 // TO ANTICIPATE ABUSING
