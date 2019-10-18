@@ -1,4 +1,6 @@
-import * as React from "react";
+import React from "react";
+import mat = require("@material-ui/core");
+
 import { Factorial } from "number-of-cases";
 import { StringUtil } from "../../utils/StringUtil";
 
@@ -12,25 +14,36 @@ export class TspInputMovie extends React.Component<TspInputMovie.IProps>
 
     public render(): JSX.Element
     {
-        let size: number = new Factorial(this.props.parameters.factorial).size();
+        let parameters: TspInputMovie.IParameters = this.props.parameters;
+        let size: number = new Factorial(parameters.factorial).size();
 
         return <div>
-            <h2> Parameters </h2>
-            <ul>
-                <li> Factoral: 
-                    <input type="number" 
-                           width={80}
-                           onChange={this._Handle_input.bind(this, "factorial")}
-                           defaultValue={this.props.parameters.factorial + ""} />
-                    !: {StringUtil.numberFormat(size)}
-                </li>
-                <li> Number of Servants:   
-                    <input type="number"
-                           width={80}
-                           onChange={this._Handle_input.bind(this, "servants")}
-                           defaultValue={this.props.parameters.servants + ""} />
-                </li>
-            </ul>
+            <h2 style={{ marginBottom: 0 }}> Parameters </h2>
+            <hr style={{ borderWidth: 3 }} />
+            <div style={{ padding: 15, paddingRight: 0 }}>
+                <mat.TextField type="number" 
+                               label="Number of Branches (N!)"
+                               fullWidth
+                               onChange={this._Handle_input.bind(this, "factorial")}
+                               defaultValue={parameters.factorial} />
+                <br/><br/>
+                <mat.TextField type="number"
+                               label="Number of Servants (/S)"
+                               fullWidth
+                               onChange={this._Handle_input.bind(this, "servants")}
+                               defaultValue={parameters.servants} />
+            </div>
+            <br/><br/>
+            <div style={{ textAlign: "right" }}>
+                <p>
+                    Total Iterations: {StringUtil.numberFormat(size)} <br/>
+                    Each Servant's Iterations: {StringUtil.numberFormat(size / parameters.servants)}
+                </p>
+                <mat.Button variant="contained" 
+                            onClick={this.props.solver}> 
+                    Solve 
+                </mat.Button>
+            </div>
         </div>;
     }
 }
@@ -40,6 +53,7 @@ export namespace TspInputMovie
     export interface IProps
     {
         parameters: IParameters;
+        solver: () => Promise<void>;
     }
 
     export interface IParameters

@@ -1,10 +1,17 @@
 import "./polyfill";
-import * as React from "react";
-import * as ReactDOM from "react-dom";
-import { randint } from "tstl/algorithm";
-import { sleep_for } from "tstl/thread";
+import React from "react";
+import ReactDOM from "react-dom";
+import mat = require("@material-ui/core");
+
+import MenuBookIcon from "@material-ui/icons/MenuBook";
+import GitHubIcon from "@material-ui/icons/Github";
+
+import { randint, sort } from "tstl/algorithm";
+import { sleep_for } from "tstl/thread/global";
+import { begin, end } from "tstl/iterator/factory";
 
 import { Global } from "../Global";
+import { StringUtil } from "../utils/StringUtil";
 
 import { IPoint } from "../utils/IPoint";
 import { Consumer } from "../core/consumer/Consumer";
@@ -14,25 +21,17 @@ import { TspSolver } from "../utils/TspSolver";
 import { TspInputMovie } from "./movies/TspInputMovie";
 import { TspResultMovie } from "./movies/TspResultMovie";
 import { ReactUtil } from "../utils/ReactUtil";
-import { StringUtil } from "../utils/StringUtil";
 
 export class TspApplication extends React.Component
 {
-    private input_: TspInputMovie.IParameters;
+    private input_: TspInputMovie.IParameters = {
+        factorial: 11,
+        servants: 4
+    };
 
-    /* ----------------------------------------------------------------
-        CONSTRUCTORS
-    ---------------------------------------------------------------- */
-    public constructor()
+    private _Open_link(url: string): void
     {
-        super({});
-
-        this.input_ = { factorial: 10, servants: 4 };
-    }
-
-    public static main(): void
-    {
-        ReactDOM.render(<TspApplication />, document.body);
+        window.open(url, "_blank");
     }
 
     /* ----------------------------------------------------------------
@@ -46,8 +45,7 @@ export class TspApplication extends React.Component
         // RANDOM BRANCHES
         let branches: IPoint[] = [];
         for (let i: number = 0; i < this.input_.factorial; ++i)
-            branches.push(
-            {
+            branches.push({
                 y: randint(0, 100),
                 x: randint(0, 100)
             });
@@ -80,14 +78,7 @@ export class TspApplication extends React.Component
         // EXCEPTION - NO SERVANT
         if (servants.length === 0)
         {
-            await consumer.leave();
-            await ReactUtil.render(
-                <React.Fragment>
-                    <h2> Error </h2>
-                    No servant to assign.
-                </React.Fragment>,
-                document.getElementById("result_div")!
-            );
+            alert("No idle servant in the market.");
             return;
         }
 
@@ -124,16 +115,27 @@ export class TspApplication extends React.Component
 
         // DO SOLVE
         let solutions: TspSolver.ISolution[] = await TspSolver.distribute(branches, servants);
-        complete = true;
+        let pairs: TspResultMovie.IServantSolution[] = servants.map((serv, idx) =>
+        ({
+            uid: serv.uid,
+            ...solutions[idx]
+        }));
 
+        sort(begin(pairs), end(pairs), (x, y) =>
+        {
+            if (x.travel === null)
+                return false;
+            else if (y.travel === null)
+                return true;
+            else
+                return TspSolver.computeDistance(x.travel) < TspSolver.computeDistance(y.travel);
+        });
+
+        complete = true;
         await consumer.leave();
 
         // PRINT RESULT
-        ReactDOM.render(
-            <TspResultMovie servants={servants} 
-                            solutions={solutions} />, 
-            document.getElementById("result_div")
-        );
+        await ReactUtil.render(<TspResultMovie solutions={pairs} />, document.getElementById("result_div")!);
     }
 
     /* ----------------------------------------------------------------
@@ -141,16 +143,32 @@ export class TspApplication extends React.Component
     ---------------------------------------------------------------- */
     public render(): JSX.Element
     {
-        return <div>
-            <h1> Grid Coin Example - TSP Solver </h1>
-            <TspInputMovie parameters={this.input_} />
-            <button onClick={this.solve.bind(this)}> Solve </button>
-
-            <div id="result_div">
-
+        return <React.Fragment>
+            <mat.AppBar>
+                <mat.Toolbar>
+                    <mat.Typography> Market > Consumer </mat.Typography>
+                    <div style={{ flexGrow: 1 }} />
+                    <mat.IconButton color="inherit"
+                                    onClick={this._Open_link.bind(this, Global.BOOK)}>
+                        <MenuBookIcon />
+                    </mat.IconButton>
+                    <mat.IconButton color="inherit"
+                                    onClick={this._Open_link.bind(this, Global.GITHIB)}>
+                        <GitHubIcon />
+                    </mat.IconButton>
+                </mat.Toolbar>
+            </mat.AppBar>
+            <div style={{ padding: 10, paddingTop: 50 }}>
+                <TspInputMovie parameters={this.input_}
+                               solver={this.solve.bind(this)} />
+                <br/>
+                <div id="result_div" />
             </div>
-        </div>;
+        </React.Fragment>;
     }
 }
 
-window.onload = TspApplication.main;
+window.onload = function ()
+{
+    ReactDOM.render(<TspApplication />, document.body);
+}

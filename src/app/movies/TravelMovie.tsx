@@ -32,7 +32,6 @@ export class TravelMovie extends React.Component<TravelMovie.IProps>
             </svg> : null
         }
             <ul>
-                <li> Servant: Supplier #{this.props.servant.uid} </li>
                 <li> Iterations: #{StringUtil.numberFormat(solution.iterations)} </li>
                 <li> Distance: 
                 {solution.travel
@@ -51,7 +50,6 @@ export namespace TravelMovie
     export interface IProps
     {
         solution: TspSolver.ISolution;
-        servant: { uid: number };
     }
 
     export const MARGIN: number = 10;

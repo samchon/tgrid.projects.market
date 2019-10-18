@@ -3,13 +3,13 @@ const path = require('path');
 module.exports = {
     entry: {
         'monitor': './src/app/MonitorApplication.tsx',
-        'supplier': './src/app/SupplierApplication.ts',
+        'supplier': './src/app/SupplierApplication.tsx',
         'tsp': './src/app/TspApplication.tsx',
         'tsp-servant': './src/test/tsp/internal/servant.ts'
     },
     output: {
         filename: '[name].min.js',
-        path: path.resolve(__dirname, 'assets/js')
+        path: path.resolve(__dirname, 'public/assets/js')
     },
     devtool: 'source-map',
     resolve: {

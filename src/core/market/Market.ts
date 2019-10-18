@@ -3,12 +3,9 @@ import { WebServer } from "tgrid/protocols/web/WebServer";
 import { WebAcceptor } from "tgrid/protocols/web/WebAcceptor";
 import { Driver } from "tgrid/components/Driver";
 
-import { IConsumerNode } from "../monitor/IConsumerNode";
-import { ISupplierNode } from "../monitor/ISupplierNode";
-import { Monitor } from "../monitor/Monitor";
-
 import { ConsumerChannel } from "./ConsumerChannel";
 import { SupplierChannel } from "./SupplierChannel";
+import { Monitor } from "../monitor/Monitor";
 
 export class Market
 {
@@ -63,8 +60,7 @@ export class Market
                 instance = await ConsumerChannel.create(uid, this, acceptor as WebAcceptor<ConsumerChannel.Provider>);
                 dictionary = this.consumers_;
 
-                let raw: IConsumerNode = { uid: uid, servants: [] };
-                monitor_inserter = driver => driver.insertConsumer(raw);
+                monitor_inserter = driver => driver.insertConsumer((instance as ConsumerChannel).toNode());
                 monitor_eraser = driver => driver.eraseConsumer(uid);
             }
             else if (acceptor.path === "/supplier")
@@ -72,8 +68,7 @@ export class Market
                 instance = await SupplierChannel.create(uid, acceptor as WebAcceptor<SupplierChannel.Provider>);
                 dictionary = this.suppliers_;
 
-                let raw: ISupplierNode = { uid: uid };
-                monitor_inserter = driver => driver.insertSupplier(raw);
+                monitor_inserter = driver => driver.insertSupplier(instance.toNode());
                 monitor_eraser = driver => driver.eraseSupplier(uid);
             }
             else
@@ -153,27 +148,12 @@ export class Market
         //----
         // SEND CURRENT RELATIONSHIP
         //----
-        let rawConsumers: IConsumerNode[] = [];
-        let rawSuppliers: ISupplierNode[] = [];
-
-        // CONSUMERS
-        for (let entry of this.consumers_)
-        {
-            let raw: IConsumerNode = { uid: entry.first, servants: [] };
-            for (let servantEntry of entry.second.getAssignees())
-                raw.servants.push(servantEntry.first);
-            rawConsumers.push(raw);
-        }
-        
-        // SUPPLIERS
-        for (let entry of this.suppliers_)
-        {
-            let raw: ISupplierNode = { uid: entry.first };
-            rawSuppliers.push(raw);
-        }
-        
         // DO ASSIGN
-        await driver.assign(rawConsumers, rawSuppliers);
+        await driver.assign
+        (
+            [...this.consumers_].map(it => it.second.toNode()), 
+            [...this.suppliers_].map(it => it.second.toNode())
+        );
 
         //----
         // JOIN CONNECTION

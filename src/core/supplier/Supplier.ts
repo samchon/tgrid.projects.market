@@ -54,11 +54,6 @@ export class Supplier extends EventEmitter
         return ret;
     }
 
-    public assign(consumerUID: number): void
-    {
-        this.emit("assign", consumerUID);
-    }
-
     public leave(): Promise<void>
     {
         return this.connector_.close();
@@ -86,6 +81,7 @@ export namespace Supplier
     {
         private base_ptr_: IPointer<Supplier>;
         private worker_ptr_: IPointer<WorkerConnector>;
+        private consumer_uid_?: number;
 
         /* ----------------------------------------------------------------
             CONSTRUCTOR
@@ -98,7 +94,8 @@ export namespace Supplier
 
         public assign(consumerUID: number): void
         {
-            this.base_ptr_.value.assign(consumerUID);
+            this.consumer_uid_ = consumerUID;
+            this.base_ptr_.value.emit("assign", consumerUID);
         }
 
         public async compile(code: string, ...args: string[]): Promise<void>
@@ -109,14 +106,13 @@ export namespace Supplier
                 await this.worker_ptr_.value.close();
 
             // DO COMPILE
-            console.log("do compile", code.length, args.length);
             await this.worker_ptr_.value.compile(code, ...args);
 
             // EMIT EVENTS
-            this.base_ptr_.value.emit("compile", code, ...args);
+            this.base_ptr_.value.emit("compile", this.consumer_uid_, code, ...args);
             this.worker_ptr_.value.join().then(() =>
             {
-                this.base_ptr_.value.emit("close");
+                this.base_ptr_.value.emit("close", this.consumer_uid_);
             });
         }
 

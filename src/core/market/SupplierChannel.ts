@@ -4,7 +4,9 @@ import { Mutex } from "tstl/thread/Mutex";
 import { UniqueLock } from "tstl/thread/UniqueLock";
 
 import { ISupplier } from "../supplier/ISupplier";
+import { ISupplierNode } from "../monitor/ISupplierNode";
 import { Supplier } from "../supplier/Supplier";
+
 import { ConsumerChannel } from "./ConsumerChannel";
 
 export class SupplierChannel implements Readonly<ISupplier>
@@ -13,6 +15,8 @@ export class SupplierChannel implements Readonly<ISupplier>
      * @inheritDoc
      */
     public readonly uid: number;
+
+    public readonly created_at: Date;
 
     /**
      * @inheritDoc
@@ -43,8 +47,9 @@ export class SupplierChannel implements Readonly<ISupplier>
     private constructor(uid: number, acceptor: WebAcceptor<SupplierChannel.Provider>)
     {
         this.uid = uid;
+        this.created_at = new Date();
+
         this.acceptor_ = acceptor;
-        
         this.performance = 
         {
             mean: 1.0,
@@ -110,6 +115,14 @@ export class SupplierChannel implements Readonly<ISupplier>
             free: this.free
         };
         return ret;
+    }
+
+    public toNode(): ISupplierNode
+    {
+        return {
+            uid: this.uid,
+            created_at: this.created_at.toString()
+        };
     }
 
     /* ----------------------------------------------------------------

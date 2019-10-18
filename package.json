@@ -7,6 +7,7 @@
     "build": "tsc && webpack --mode production",
     "dev": "webpack -w --mode development",
     "market": "node bin/mount/market",
+    "start": "ws -d public -p 9093",
     "test": "node bin/test"
   },
   "repository": {
@@ -20,9 +21,11 @@
   },
   "homepage": "https://github.com/samchon/tgrid.projects.market#readme",
   "dependencies": {
-    "tgrid": "^0.2.3"
+    "tgrid": "^0.2.5"
   },
   "devDependencies": {
+    "@material-ui/core": "^4.5.1",
+    "@material-ui/icons": "^4.5.1",
     "@types/node": "^12.7.5",
     "@types/react": "^16.9.2",
     "@types/react-dom": "^16.9.0",
@@ -32,8 +35,8 @@
     "react-dom": "^16.9.0",
     "ts-loader": "^6.1.2",
     "typescript": "^3.6.3",
-    "whatwg-fetch": "^3.0.0",
     "webpack": "^4.40.2",
-    "webpack-cli": "^3.3.9"
+    "webpack-cli": "^3.3.9",
+    "whatwg-fetch": "^3.0.0"
   }
 }

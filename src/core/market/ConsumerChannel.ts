@@ -2,15 +2,18 @@ import { WebAcceptor } from "tgrid/protocols/web/WebAcceptor";
 import { HashMap } from "tstl/container/HashMap";
 import { ArrayDict } from "../../utils/ArrayDict";
 
-import { Market } from "./Market";
+import { IConsumerNode } from "../monitor/IConsumerNode";
 import { ISupplier } from "../supplier/ISupplier";
 import { SupplierChannel } from "./SupplierChannel";
+
+import { Market } from "./Market";
 import { Supplier } from "../supplier/Supplier";
 import { Consumer } from "../consumer/Consumer";
 
 export class ConsumerChannel
 {
     public readonly uid: number;
+    public readonly created_at: Date;
 
     /**
      * @hidden
@@ -25,7 +28,7 @@ export class ConsumerChannel
     /**
      * @hidden
      */
-    private assignees_: HashMap<number, SupplierChannel>;
+    private servants_: HashMap<number, SupplierChannel>;
 
     /* ----------------------------------------------------------------
         CONSTRUCTORS
@@ -38,8 +41,9 @@ export class ConsumerChannel
         this.uid = uid;
         this.market_ = market;
         this.acceptor_ = acceptor;
-
-        this.assignees_ = new HashMap();
+        
+        this.created_at = new Date();
+        this.servants_ = new HashMap();
     }
 
     /**
@@ -60,7 +64,7 @@ export class ConsumerChannel
     private async _Handle_disconnection(): Promise<void>
     {
         try { await this.acceptor_.join(); } catch {}
-        for (let it of this.assignees_)
+        for (let it of this.servants_)
             await it.second.release(this);
     }
 
@@ -85,7 +89,16 @@ export class ConsumerChannel
      */
     public getAssignees()
     {
-        return this.assignees_;
+        return this.servants_;
+    }
+
+    public toNode(): IConsumerNode
+    {
+        return {
+            uid: this.uid,
+            created_at: this.created_at.toString(),
+            servants: [...this.servants_].map(it => it.first)
+        };
     }
 
     /* ----------------------------------------------------------------
@@ -96,12 +109,12 @@ export class ConsumerChannel
      */
     public async transact(supplier: SupplierChannel): Promise<boolean>
     {
-        if (this.assignees_.has(supplier.uid) || // DUPLICATED
+        if (this.servants_.has(supplier.uid) || // DUPLICATED
             await supplier.transact(this) === false) // MONOPOLIZED
             return false;
 
         // CONSTR5UCT SERVANT
-        await this.assignees_.emplace(supplier.uid, supplier);
+        await this.servants_.emplace(supplier.uid, supplier);
 
         // PROVIDER FOR CONSUMER (SERVANT) := CONTROLLER OF SUPPLIER
         let provider = supplier.getDriver();
@@ -120,7 +133,7 @@ export class ConsumerChannel
      */
     public async release(supplier: SupplierChannel): Promise<void>
     {
-        this.assignees_.erase(supplier.uid);
+        this.servants_.erase(supplier.uid);
         this.acceptor_.getProvider()!.assginees.erase(supplier.uid);
 
         await supplier.release(this);

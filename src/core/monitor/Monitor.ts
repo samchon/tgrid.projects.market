@@ -141,11 +141,11 @@ export namespace Monitor
         {
             let base: Monitor = this.ptr_.value;
             for (let raw of rawSuppliers)
-                base.getSuppliers().emplace(raw.uid, new SupplierNode(raw.uid));
+                base.getSuppliers().emplace(raw.uid, new SupplierNode(raw));
                 
             for (let raw of rawConsumers)
             {
-                let consumer: ConsumerNode = new ConsumerNode(raw.uid);
+                let consumer: ConsumerNode = new ConsumerNode(raw);
                 for (let uid of raw.servants)
                 {
                     let supplier: SupplierNode = base.getSuppliers().get(uid);
@@ -162,14 +162,16 @@ export namespace Monitor
         public insertConsumer(raw: IConsumerNode): void
         {
             let base: Monitor = this.ptr_.value;
-            base.getConsumers().emplace(raw.uid, new ConsumerNode(raw.uid));
+            let consumer: ConsumerNode = new ConsumerNode(raw);
+
+            base.getConsumers().emplace(consumer.uid, consumer);
             base._Refresh();
         }
 
         public insertSupplier(raw: ISupplierNode): void
         {
             let base: Monitor = this.ptr_.value;
-            base.getSuppliers().emplace(raw.uid, new SupplierNode(raw.uid));
+            base.getSuppliers().emplace(raw.uid, new SupplierNode(raw));
             base._Refresh();
         }
 

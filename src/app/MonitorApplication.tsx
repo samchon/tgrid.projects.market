@@ -1,120 +1,181 @@
 import "./polyfill";
-import * as React from "react";
-import * as ReactDOM from "react-dom";
+import React from "react";
+import ReactDOM from "react-dom";
+import mat = require("@material-ui/core");
 
-import { HashMap } from "tstl/container/HashMap";
-import { randint } from "tstl/algorithm";
+import MenuBookIcon from "@material-ui/icons/MenuBook";
+import GitHubIcon from "@material-ui/icons/Github";
+
+import { randint } from "tstl/algorithm/random";
+import { StringUtil } from "../utils/StringUtil";
 
 import { Monitor } from "../core/monitor/Monitor";
-import { ConsumerNode } from "../core/monitor/ConsumerNode";
 import { SupplierNode } from "../core/monitor/SupplierNode";
-
-import { ConsumerMovie } from "./movies/ConsumerMovie";
+import { ConsumerNode } from "../core/monitor/ConsumerNode";
 import { Global } from "../Global";
+import { DateUtil } from "../utils/DateUtil";
 
-export class MonitorApplication extends React.Component<MonitorApplication.IProps>
+class MonitorApplication extends React.Component<IProps>
 {
+    private selecte_consumer_: ConsumerNode | null;
+
+    public constructor(props: IProps)
+    {
+        super(props);
+        this.selecte_consumer_ = null;
+
+        props.monitor.on("refresh", () => this.setState({}));
+    }
+
+    private _Open_link(url: string): void
+    {
+        window.open(url, "_blank");
+    }
+
+    private _Select_consumer(consumer: ConsumerNode): void
+    {
+        this.selecte_consumer_ = (this.selecte_consumer_ !== consumer)
+            ? consumer
+            : null;
+        this.setState({});
+    }
+
+    /* ----------------------------------------------------------------
+        RENDERERS
+    ---------------------------------------------------------------- */
     public render(): JSX.Element
     {
-        let children: JSX.Element[] = [];
-        let top: number = 0;
+        let monitor: Monitor = this.props.monitor;
 
-        for (let entry of this.props.consumers)
-        {
-            if (entry.second.servants.empty())
-                continue;
+        return <React.Fragment>
+            <mat.AppBar>
+                <mat.Toolbar>
+                    <mat.Typography> Market > Monitor </mat.Typography>
+                    <div style={{ flexGrow: 1 }} />
+                    <mat.IconButton color="inherit"
+                                    onClick={this._Open_link.bind(this, Global.BOOK)}>
+                        <MenuBookIcon />
+                    </mat.IconButton>
+                    <mat.IconButton color="inherit"
+                                    onClick={this._Open_link.bind(this, Global.GITHIB)}>
+                        <GitHubIcon />
+                    </mat.IconButton>
+                </mat.Toolbar>
+            </mat.AppBar>
+            <div style={{ paddingTop: 75 }}>
+                Number of participants
+                <ul>
+                    <li> Consumers: {monitor.getConsumers().size()} </li>
+                    <li> Suppliers: {monitor.getSuppliers().size()} </li>
+                </ul>
+                <mat.Table size="small">
+                    <mat.TableHead>
+                        <mat.TableRow>
+                            <mat.TableCell> Consumer </mat.TableCell>
+                            <mat.TableCell> Suppliers </mat.TableCell>
+                            <mat.TableCell> Participated </mat.TableCell>
+                        </mat.TableRow>
+                    </mat.TableHead>
+                    <mat.TableBody>
+                    {[...monitor.getConsumers()].map(it => 
+                        this._Render_consumer(it.second)
+                    )}
+                    </mat.TableBody>
+                </mat.Table>
+            </div>
+        </React.Fragment>;
+    }
 
-            children.push(<ConsumerMovie consumer={entry.second} top={top} />);
-            top += entry.second.servants.size() * ConsumerMovie.NODE_VERTICAL_GAP;
-        }
+    private _Render_consumer(consumer: ConsumerNode): JSX.Element | null
+    {
+        if (consumer.servants.empty())
+            return null;
 
-        return <div>
-            <h1> Grid Coin Monitor </h1>
-            <ul>
-                <li> Consumers: #{this.props.consumers.size()} </li>
-                <li> Suppliers: #{this.props.suppliers.size()} </li>
-            </ul>
+        return <React.Fragment>
+            <mat.TableRow hover 
+                          onClick={this._Select_consumer.bind(this, consumer)}>
+                <mat.TableCell> #{StringUtil.numberFormat(consumer.uid)} </mat.TableCell>
+                <mat.TableCell align="right"> 
+                    {StringUtil.numberFormat(consumer.servants.size())} 
+                </mat.TableCell>
+                <mat.TableCell>
+                    {DateUtil.to_string(consumer.created_at, true, true)}
+                </mat.TableCell>
+            </mat.TableRow>
+            <mat.TableRow>
+                <mat.TableCell colSpan={3}
+                               style={{ paddingTop: 0, paddingBottom: 0 }}>
+                    <mat.Collapse in={this.selecte_consumer_ === consumer}>
+                        { this._Render_servants([...consumer.servants].map(it => it.second)) }
+                    </mat.Collapse>
+                </mat.TableCell>
+            </mat.TableRow>
+        </React.Fragment>;
+    }
 
-            <svg width={ConsumerMovie.NODE_HORIZONTAL_GAP * 3} 
-                 height={top}>
-                <image xlinkHref={`assets/images/market.png`}
-                       width={ConsumerMovie.NODE_SCALE} 
-                       height={ConsumerMovie.NODE_SCALE} />
-                <text textAnchor="middle"
-                      fontSize={ConsumerMovie.FONT_SIZE}
-                      x={ConsumerMovie.NODE_SCALE / 2}
-                      y={ConsumerMovie.NODE_SCALE + 20}>
-                    Market
-                </text>
-                { children }
-            </svg>
-        </div>;
+    private _Render_servants(servants: SupplierNode[]): JSX.Element
+    {
+        return <React.Fragment>
+            <h4> Assigned Suppliers </h4>
+            <mat.Table size="small">
+                <mat.TableHead>
+                    <mat.TableRow>
+                        <mat.TableCell> Supplier </mat.TableCell>
+                        <mat.TableCell> Participated </mat.TableCell>
+                        <mat.TableCell> Assigned </mat.TableCell>
+                    </mat.TableRow>
+                </mat.TableHead>
+                <mat.TableBody>
+                {servants.map(supplier => 
+                    <mat.TableRow>
+                        <mat.TableCell> #{StringUtil.numberFormat(supplier.uid)} </mat.TableCell>
+                        <mat.TableCell> {DateUtil.to_string(supplier.created_at!, true, true)} </mat.TableCell>
+                        <mat.TableCell> {DateUtil.to_string(supplier.assigned_at!, true, true)} </mat.TableCell>
+                    </mat.TableRow>
+                )}
+                </mat.TableBody>
+            </mat.Table>
+        </React.Fragment>;
     }
 }
 
-export namespace MonitorApplication
+interface IProps
 {
-    export interface IProps
-    {
-        consumers: HashMap<number, ConsumerNode>;
-        suppliers: HashMap<number, SupplierNode>;
-    }
+    monitor: Monitor;
+}
 
-    export async function main(): Promise<void>
-    {
-        let url: string = `ws://${window.location.hostname}:${Global.PORT}/monitor`;
-        let monitor: Monitor = await Monitor.participate(url);
+window.onload = async function ()
+{
+    let monitor: Monitor = await Monitor.participate(Global.url("/monitor"));
 
-        _Render(monitor.getConsumers(), monitor.getSuppliers());
-        monitor.on("refresh", () =>
-        {
-            _Render(monitor.getConsumers(), monitor.getSuppliers());
-        });
-    }
-
-    export async function test(): Promise<void>
+    // FAKE SYSTEMS
+    if (window.location.href.indexOf("?fake") !== -1)
     {
         let sequence: number = 0;
-        let consumerMap: HashMap<number, ConsumerNode> = new HashMap();
-        let supplierMap: HashMap<number, SupplierNode> = new HashMap();
-
-        for (let i: number = 0; i < 4; ++i)
+        for (let i: number = 0; i < 8; ++i)
         {
-            let consumer: ConsumerNode = new ConsumerNode(++sequence);
-            let count: number = randint(0, 5);
+            let consumer: ConsumerNode = new ConsumerNode({
+                uid: --sequence,
+                servants: [],
+                created_at: new Date().toString()
+            });
+            let count: number = randint(0, 8);
 
             while (count-- > 0)
             {
-                let supplier: SupplierNode = new SupplierNode(++sequence);
+                let supplier: SupplierNode = new SupplierNode({
+                    uid: --sequence,
+                    created_at: new Date().toString()
+                });
                 supplier.assign(consumer);
 
-                supplierMap.emplace(supplier.uid, supplier);
+                monitor.getSuppliers().emplace(supplier.uid, supplier);
                 consumer.servants.emplace(supplier.uid, supplier);
             }
-            consumerMap.emplace(consumer.uid, consumer);
+            monitor.getConsumers().emplace(consumer.uid, consumer);
         }
-
-        _Render(consumerMap, supplierMap);;
     }
 
-    /**
-     * @hidden
-     */
-    function _Render(consumerMap: HashMap<number, ConsumerNode>, supplierMap: HashMap<number, SupplierNode>): void
-    {
-        ReactDOM.render
-        (
-            <MonitorApplication consumers={consumerMap} 
-                                suppliers={supplierMap} />, 
-            document.body
-        );
-    }
-}
-
-window.onload = () =>
-{
-    if (location.href.indexOf("?test") !== -1)
-        MonitorApplication.test();
-    else
-        MonitorApplication.main();
+    // DO RENDER
+    ReactDOM.render(<MonitorApplication monitor={monitor} />, document.body);
 }
