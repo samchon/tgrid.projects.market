@@ -3,6 +3,7 @@ import { Factorial } from "number-of-cases";
 
 import { IPair } from "tstl/utility/IPair";
 import { IPoint } from "./IPoint";
+import { IPointer } from "tstl/functional/IPointer";
 import { Queue } from "tstl/container/Queue";
 
 export class TspSolver
@@ -127,7 +128,7 @@ export namespace TspSolver
         return ret;
     }
 
-    export async function distribute(branches: IPoint[], workers: IWorker[]): Promise<ISolution[]>
+    export async function distribute(branches: IPoint[], workers: IWorker[], countPtr?: IPointer<number>): Promise<ISolution[]>
     {
         // PREPARE PIECES
         let size: number = new Factorial(branches.length).size();
@@ -147,7 +148,7 @@ export namespace TspSolver
         {
             let func = async () =>
             {
-                let solution = await _Distribute(branches, queue, workers[i]);
+                let solution = await _Distribute(branches, queue, workers[i], countPtr);
                 ret[i] = solution;
             };
             latch.push(func());
@@ -158,7 +159,7 @@ export namespace TspSolver
         return ret;
     }
 
-    async function _Distribute(branches: IPoint[], queue: Queue<IPair<number, number>>, worker: IWorker): Promise<ISolution>
+    async function _Distribute(branches: IPoint[], queue: Queue<IPair<number, number>>, worker: IWorker, countPtr?: IPointer<number>): Promise<ISolution>
     {
         let driver: Driver<TspSolver> = worker.getDriver<TspSolver>();
 
@@ -183,13 +184,17 @@ export namespace TspSolver
                 {
                     let travel: IPoint[] = await driver.solve(piece.first, piece.second);
                     let myDistance: number = computeDistance(travel);
+                    let count: number = piece.second - piece.first;
 
                     if (myDistance < distance)
                     {
                         distance = myDistance;
                         ret.travel = travel;
                     }
-                    ret.iterations += piece.second - piece.first;
+                    
+                    ret.iterations += count;
+                    if (countPtr !== undefined)
+                        countPtr.value += count;
                 }
                 catch (error)
                 {

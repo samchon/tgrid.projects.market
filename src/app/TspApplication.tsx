@@ -6,12 +6,13 @@ import mat = require("@material-ui/core");
 import MenuBookIcon from "@material-ui/icons/MenuBook";
 import GitHubIcon from "@material-ui/icons/Github";
 
+import { IPointer } from "tstl/functional/IPointer";
 import { randint, sort } from "tstl/algorithm";
 import { sleep_for } from "tstl/thread/global";
 import { begin, end } from "tstl/iterator/factory";
 
 import { Global } from "../Global";
-import { StringUtil } from "../utils/StringUtil";
+import { ReactUtil } from "../utils/ReactUtil";
 
 import { IPoint } from "../utils/IPoint";
 import { Consumer } from "../core/consumer/Consumer";
@@ -19,8 +20,9 @@ import { Servant } from "../core/consumer/Servant";
 import { TspSolver } from "../utils/TspSolver";
 
 import { TspInputMovie } from "./movies/TspInputMovie";
+import { TspProgressMovie } from "./movies/TspProgressMovie";
 import { TspResultMovie } from "./movies/TspResultMovie";
-import { ReactUtil } from "../utils/ReactUtil";
+import { Factorial } from "number-of-cases";
 
 export class TspApplication extends React.Component
 {
@@ -87,34 +89,27 @@ export class TspApplication extends React.Component
         //----
         let time: number = Date.now();
         let complete: boolean = false;
-
-        // SHOW PROGRESS
-        await ReactUtil.render
-        (
-            <React.Fragment>
-                <h2> Comupting... </h2>
-                <ul>
-                    <li> Number of assigned servants: #{servants.length} </li>
-                    <li id="elapsed_time_li"> Elapsed time </li>
-                </ul>
-            </React.Fragment>,
-            document.getElementById("result_div")!
-        );
+        let countPtr: IPointer<number> = { value: 0 };
+        let total: number = new Factorial(this.input_.factorial).size();
 
         (async () =>
         {
-            let element: HTMLElement = document.getElementById("elapsed_time_li")!;
             while (complete === false)
             {
-                await sleep_for(10);
-
-                let elapsedTime: number = Date.now() - time;
-                element.innerHTML = StringUtil.numberFormat(elapsedTime) + " ms";
+                await ReactUtil.render
+                (
+                    <TspProgressMovie servants={servants.length}
+                                      complete={countPtr.value}
+                                      total={total}
+                                      time={Date.now() - time} />,
+                    document.getElementById("result_div")!
+                );
+                await sleep_for(25);
             }
         })();
 
         // DO SOLVE
-        let solutions: TspSolver.ISolution[] = await TspSolver.distribute(branches, servants);
+        let solutions: TspSolver.ISolution[] = await TspSolver.distribute(branches, servants, countPtr);
         let pairs: TspResultMovie.IServantSolution[] = servants.map((serv, idx) =>
         ({
             uid: serv.uid,
