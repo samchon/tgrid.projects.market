@@ -2,9 +2,10 @@ import { WebConnector } from "tgrid/protocols/web/WebConnector";
 import { Driver } from "tgrid/components/Driver";
 import { ArrayDict } from "../../utils/ArrayDict";
 
-import { Servant } from "./Servant";
 import { ISupplier } from "../supplier/ISupplier";
+import { Servant } from "./Servant";
 import { ConsumerChannel } from "../market/ConsumerChannel";
+import { Supplier } from "../supplier/Supplier";
 
 export class Consumer
 {
@@ -54,8 +55,8 @@ export class Consumer
         if (await this.market_.buyResource(base) === false)
             return null;
 
-        let driver = this.market_.assginees[base.uid];
-        let ret: Servant = Servant.create(base, driver);
+        let driver: Supplier.IController = this.market_.assginees[base.uid];
+        let ret: Servant = Servant.create(base, driver as Driver<Supplier.IController>);
 
         ret.join().then(() =>
         {
