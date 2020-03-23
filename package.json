@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/samchon/tgrid.projects.market#readme",
   "dependencies": {
-    "tgrid": "^0.3.0"
+    "tgrid": "^0.4.0-dev.20200323"
   },
   "devDependencies": {
     "@material-ui/core": "^4.8.3",
@@ -35,7 +35,7 @@
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "ts-loader": "^6.2.1",
-    "typescript": "^3.7.4",
+    "typescript": "^3.8.3",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",
     "whatwg-fetch": "^3.0.0"
